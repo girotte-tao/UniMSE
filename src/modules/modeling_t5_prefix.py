@@ -859,7 +859,7 @@ class T5Stack(T5PreTrainedModel):
         if hp.info_nce:
             self.info_nce = InfoNCE(hp)
 
-        self.adapter_layer = min(hp.adapter_layer, config.num_layers) # 6-2
+        self.adapter_layer = min(hp.adapter_layer, config.num_layers) # 3, 10
         self.block = nn.ModuleList()
         for i in range(config.num_layers): ## 6, 5
             if i < config.num_layers - self.adapter_layer:

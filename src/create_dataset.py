@@ -10,7 +10,11 @@ from subprocess import check_call
 
 import torch
 import torch.nn as nn
-
+from torch.utils.data import Dataset, DataLoader
+from transformers import T5Tokenizer
+model_path = './t5-base'
+tokenizer = T5Tokenizer.from_pretrained(model_path)
+label2Text = ['anger', 'disgust', 'fear', 'happy', 'neural', 'sad', 'surprise']
 
 def to_pickle(obj, path):
     with open(path, 'wb') as f:
@@ -55,6 +59,54 @@ def return_unk():
 def get_length(x):
     return x.shape[1] - (np.sum(x, axis=-1) == 0).sum(1)
 
+class OmgBehavior(Dataset):
+    def __init__(self,mode='train'):
+        super().__init__()
+        self.mode = mode
+        with open('../dataset/feature_aug.pkl', 'rb') as f:
+            data = pickle.load(f)[self.mode]
+        task_prefix = 'sst2 sentence:'
+        self.text = data['raw_text']
+        self.audio = torch.tensor(data['audio'], dtype=torch.float)
+        self.behavior = torch.tensor(data['behavior'],  dtype=torch.float)
+        self.audio_lengths = data['audio_lengths']
+        self.behavior_lengths = data['behavior_lengths']
+        self.labels = []
+        for i in range(len(data['labels'])):
+            if data['labels'][i]==2:
+                self.labels.append('positive')
+            elif data['labels'][i]==3:
+                self.labels.append('neutral')
+            else:
+                self.labels.append('negative')
+        encoding = tokenizer(
+            [task_prefix + sequence  for sequence in self.text],
+            return_tensors='pt', padding=True
+        )
+        self.t5_input_id = encoding.input_ids
+        self.t5_att_mask = encoding.attention_mask
+        
+        target_encoding = tokenizer(
+            self.labels, padding = "longest"
+        )
+        self.t5_labels = torch.tensor(target_encoding.input_ids)
+        self.t5_labels[self.t5_labels == tokenizer.pad_token_id] = -100
+    def __len__(self):
+        return len(self.t5_labels)
+    
+    def __getitem__(self, index):
+        sample = {
+            't5_input_id': self.t5_input_id[index],
+            't5_att_mask': self.t5_att_mask[index],
+            't5_labels' : self.t5_labels[index],
+            'audio' : self.audio[index],
+            'audio_lengths' : self.audio_lengths[index],
+            'behavior' : self.behavior[index][:],
+            'behavior_lengths': self.behavior_lengths[index] if self.behavior_lengths[index]>0 else 1,
+            'labels' :  self.labels[index],
+            'raw_text': self.text[index]
+        }
+        return sample
 
 class MOSI:
     def __init__(self, config):
@@ -519,10 +571,9 @@ class IEMOCAP:
         DATA_PATH = str(config.dataset_dir)
 
         # If cached data if already exists
-        data = load_pickle(DATA_PATH + '/iemocap_data.pkl')
-        self.train = data['train']
-        self.dev = data['valid']
-        self.test = data['test']
+        self.train = load_pickle(DATA_PATH + '/train.pkl')
+        self.dev = load_pickle(DATA_PATH + '/dev.pkl')
+        self.test = load_pickle(DATA_PATH + '/test.pkl')
         self.multi=True
         self.pretrained_emb, self.word2id = None, None
 

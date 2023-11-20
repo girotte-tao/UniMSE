@@ -13,10 +13,10 @@ from utils.tools import contain_nonum, is_number
 
 from create_dataset import MOSI, MOSEI, MOSEII, MOSELD, MOSELDMP, IEMOCAP, MELD, EmotionLines, Laptops, Restaurants, PAD, UNK
 from config import DEVICE
-model_path = '../t5-base'
+model_path = './t5-base'
 # model_path = '../t5-large'
 tokenizer = T5Tokenizer.from_pretrained(model_path)
-
+dic = {'fru' : 'frustrated', 'neu':'neural', 'exc':'excited','hap':'happy', 'sad' : 'sad', 'ang':'angry'}
 
 class MSADataset(Dataset):
     def __init__(self, config):
@@ -73,7 +73,7 @@ class MSADataset(Dataset):
         t_dim = 512
         if self.multi:
             if self.config.dataset == 'meld':
-                return t_dim, 0, self.data[0][0][2].shape[0]
+                return t_dim, 0, self.data[0][0][2].shape[1]
             else:
                 print('t_dim:{},va_dim:{}'.format(t_dim, str((self.data[0][0][1].shape[1], self.data[0][0][2].shape[1]))))
                 return t_dim, self.data[0][0][1].shape[1], self.data[0][0][2].shape[1]
@@ -144,7 +144,10 @@ def get_loader(hp, config, prompt_dict = None, shuffle=True):
                     v_lens.append(torch.IntTensor([len(sample[0][3])]))
                     a_lens.append(torch.IntTensor([len(sample[0][3])]))
                 # labels.append(torch.from_numpy(sample[1]))
-                labels.append(sample[1])
+                if config.mode =='train':
+                    labels.append(dic[sample[1].split(",")[3]])   # neu
+                else:
+                    labels.append(dic[sample[1]])
                 ids.append(sample[2])
             vlens = torch.cat(v_lens)
             alens = torch.cat(a_lens)
@@ -205,7 +208,10 @@ def get_loader(hp, config, prompt_dict = None, shuffle=True):
                 text = sample[0][3]
                 # print('ori sample:{}'.format(text))
                 # score = str(sample[1][0][0])
-                score = str(sample[1])
+                if config.mode == 'train':
+                    score = dic[sample[1].split(",")[3]]
+                else:
+                    score = dic[sample[1]]
                 # source = sample[2]
                 # print('source:{}'.format(source))
 
@@ -275,7 +281,6 @@ def get_loader(hp, config, prompt_dict = None, shuffle=True):
             prompt_ids = torch.IntTensor(prompt_id)
             if (vlens <= 0).sum() > 0:
                 vlens[np.where(vlens == 0)] = 1
-
             return [], visual.to(DEVICE), vlens, acoustic.to(DEVICE), alens, labels, t5_input_id.to(DEVICE), t5_att_mask.to(DEVICE), t5_labels.to(DEVICE), prompt_embs.to(DEVICE), prompt_ids.to(DEVICE),ids
         else:
             ### 没有视频模态
@@ -285,7 +290,7 @@ def get_loader(hp, config, prompt_dict = None, shuffle=True):
             # B = 0.0001  # 小数的范围A ~ B
             # C = 6
             for sample in batch:
-                text = " ".join(sample[0][3])
+                text = sample[0][3]
                 label = str(sample[1])
 
                 inputs_seq.append(text)
@@ -299,7 +304,7 @@ def get_loader(hp, config, prompt_dict = None, shuffle=True):
             t5_input_id = encoding.input_ids
             t5_att_mask = encoding.attention_mask
             target_encoding = tokenizer(
-                outputs_seq, padding="longest"
+                outputs_seq, padding="longest"  #填充到当前batch的最大长度，maxlen 和 True都是填充到模型所能接受的最大长度
             )
             t5_labels = target_encoding.input_ids
             t5_labels = torch.tensor(t5_labels)
@@ -308,9 +313,9 @@ def get_loader(hp, config, prompt_dict = None, shuffle=True):
             acoustic = torch.FloatTensor([sample[0][2] for sample in batch])
             labels = [sample[1] for sample in batch]
             return None, None, None, acoustic.to(DEVICE), None, labels, t5_input_id.to(
-                DEVICE), t5_att_mask.to(DEVICE), t5_labels.to(DEVICE), None, None
+                DEVICE), t5_att_mask.to(DEVICE), t5_labels.to(DEVICE), None, None, None
 
-
+    
     data_loader = DataLoader(
         dataset=dataset,
         batch_size=config.batch_size,

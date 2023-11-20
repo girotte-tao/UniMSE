@@ -30,7 +30,7 @@ class LanguageEmbeddingLayer(nn.Module):
         self.init_checkpoint = hp.init_checkpoint
         self.hp = hp
 
-        model_path = '../t5-base'
+        model_path = './t5-base'
         # model_path = '../t5-large'
 
         
@@ -88,12 +88,13 @@ class RNNEncoder(nn.Module):
         '''
         x: (batch_size, sequence_len, in_size)
         '''
+        
         lengths = lengths.to(torch.int64)
         bs = x.size(0)
         # print('x_shape:{}'.format(x.shape))
         # print('lengths_shape:{}'.format(lengths.shape))
-
-        packed_sequence = pack_padded_sequence(x, lengths, enforce_sorted=False)
+        
+        packed_sequence = pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         # print('x shape:{}'.format(x.shape))
         # print('length shape:{}'.format(lengths.shape))
         out_pack, final_states = self.rnn(packed_sequence)
@@ -111,7 +112,7 @@ class RNNEncoder(nn.Module):
             x_unsort_idx = torch.argsort(x_sort_idx).long()
             # print('out_pack_shape:{}'.format(out_pack.shape))
             out = torch.nn.utils.rnn.pad_packed_sequence(out_pack, batch_first=True)  # (sequence, lengths)
-            out = out[0]  #
+            out = out[0]  #sequence
             out = out[x_unsort_idx]
             return y_1, out
         else:

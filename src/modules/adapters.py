@@ -19,7 +19,7 @@ import os
 logger = logging.getLogger(__name__)
 args = get_args()
 class AdapterConfig:
-    project_hidden_size: int = args.hidden_size
+    project_hidden_size: int = args.hidden_size  #768
     hidden_act: str = "gelu"
     adapter_size: int = 64  # 64
     adapter_initializer_range: float = 0.001
@@ -49,12 +49,12 @@ class FFN_Adapter(nn.Module):
         self.visualize = hp.visualize
         self.adapter_layer = hp.adapter_layer
         if hp.multi:
-            in_dim = self.adapter_config.project_hidden_size + hp.d_vout + hp.d_aout
+            in_dim = self.adapter_config.project_hidden_size + hp.d_vout + hp.d_aout    # 768 + 32 + 32
         else:
             in_dim = self.adapter_config.project_hidden_size
 
-        self.adapter_down_project = nn.Linear(in_dim,self.adapter_config.adapter_size)
-        self.adapter_up_project = nn.Linear(self.adapter_config.adapter_size,in_dim)
+        self.adapter_down_project = nn.Linear(in_dim,self.adapter_config.adapter_size)  # (768 + 32 + 32) --> 64
+        self.adapter_up_project = nn.Linear(self.adapter_config.adapter_size,in_dim)  # 64 --> (768 + 32 + 32)
         self.adapter_down_project.weight = torch.nn.Parameter(torch.normal(mean=0.0, std=self.adapter_config.adapter_initializer_range,
                                                                    size=(self.adapter_config.adapter_size, in_dim,)))
         self.adapter_down_project.bias = torch.nn.Parameter(torch.zeros(self.adapter_config.adapter_size))
@@ -62,7 +62,7 @@ class FFN_Adapter(nn.Module):
         self.adapter_up_project.weight = torch.nn.Parameter(torch.normal(mean=0.0, std=self.adapter_config.adapter_initializer_range,
                                                     size=(in_dim, self.adapter_config.adapter_size,)))
         self.adapter_up_project.bias = torch.nn.Parameter(torch.zeros(in_dim))
-        self.adapter_linear = nn.Linear(in_dim,self.adapter_config.out_hidden_size)
+        self.adapter_linear = nn.Linear(in_dim,self.adapter_config.out_hidden_size) # (768 + 32 + 32) --> 768
 ####
     def forward(self, hidden_states, visual=None, acoustic=None, id=3):
         ### visualization应该保存第几个adapter的可视化结果

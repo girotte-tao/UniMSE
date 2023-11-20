@@ -11,13 +11,13 @@ class Model(nn.Module):
     def __init__(self, hp):
         super().__init__()
         self.hp = hp
-        self.add_va = hp.add_va
-        self.multi = hp.multi
-        hp.d_tout = hp.d_tin
+        self.add_va = hp.add_va  #add va MMILB module  store_true
+        self.multi = hp.multi    #modalti setting true
+        hp.d_tout = hp.d_tin     # 512
         
         ###prompt
         
-        if hp.use_prefix_p:
+        if hp.use_prefix_p:    #False 
             self.n_layer = 1
             self.n_head = 1
             self.n_embd = hp.prompt_hidden_size // self.n_head
@@ -32,15 +32,15 @@ class Model(nn.Module):
             self.visual_enc = RNNEncoder(
                 in_size=hp.d_vin,
                 hidden_size=hp.d_vh,
-                out_size=hp.d_vout,
-                num_layers=hp.n_layer,
+                out_size=hp.d_vout,  #32
+                num_layers=hp.n_layer,  # 1
                 dropout=hp.dropout_v if hp.n_layer > 1 else 0.3,
                 bidirectional=hp.bidirectional
             )
             self.acoustic_enc = RNNEncoder(
                 in_size=hp.d_ain,
                 hidden_size=hp.d_ah,
-                out_size=hp.d_aout,
+                out_size=hp.d_aout,  #32
                 num_layers=hp.n_layer,
                 dropout=hp.dropout_a if hp.n_layer > 1 else 0.3,
                 bidirectional=hp.bidirectional
@@ -69,7 +69,7 @@ class Model(nn.Module):
                 visual, visual_seq = self.visual_enc(visual, v_len, use_seq=True) ## bs, seq_len, v_dim
                 outputs =self.T5_encoder.t5_model.generate(t5_input_id, attention_mask=t5_att_mask,visual=(visual,visual_seq), acoustic=(acoustic,acoustic_seq))
             else:
-                if self.hp.info_nce:
+                if self.hp.info_nce:   #False
                     acoustic, acoustic_seq = self.acoustic_enc(acoustic, a_len, use_seq=True)  ## bs, a_dim
                     visual, visual_seq = self.visual_enc(visual, v_len, use_seq=True)  ## bs, a_dim
                 else:
@@ -107,7 +107,7 @@ class Model(nn.Module):
                     acoustic, acoustic_seq = self.acoustic_enc(acoustic, a_len)  ## bs, a_dim
                     visual, visual_seq = self.visual_enc(visual, v_len)  ## bs, a_dim
                     
-                if self.hp.use_prefix_p:
+                if self.hp.use_prefix_p:  #False
                     batch_size = t5_input_id.shape[0]
                     prompt_key_values = self.get_prompt(batch_size=batch_size)
                     prefix_attention_mask = torch.ones(batch_size, self.pre_seq_len).to(DEVICE)

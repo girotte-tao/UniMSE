@@ -2,7 +2,7 @@ from torch.autograd import Function
 import torch.nn as nn
 import torch
 import torch.autograd.functional as F
-
+from torch.utils.data import Dataset, DataLoader
 """
 Adapted from https://github.com/fungtion/DSN/blob/master/functions.py
 """
@@ -144,4 +144,8 @@ def contains_fine(name, fine_tune_layers):
     return False
 
 
+def get_dataloader(hp, dataset):
+    
+    dataloader = DataLoader(dataset, batch_size=hp.batch_size, num_workers= hp.num_works, shuffle=hp.shuffle)
 
+    return dataloader

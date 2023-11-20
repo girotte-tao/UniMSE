@@ -1,7 +1,7 @@
 import pickle
 import pandas as pd
 import numpy as np
-DATA_PATH = '.'
+DATA_PATH = '../datasets/IEMOCAP'
 def to_pickle(obj, path):
     with open(path, 'wb') as f:
         pickle.dump(obj, f)
@@ -33,12 +33,13 @@ def audio2text(text, audio_dict):
 
     return data
 
-pickle_path = DATA_PATH + '/meld_data_0424.pkl'
+pickle_path = DATA_PATH + '/iemocap_data_0610.pkl'
 train_csv = DATA_PATH + '/train_sent_emo.csv'
 dev_csv = DATA_PATH + '/dev_sent_emo.csv'
 test_csv = DATA_PATH + '/test_sent_emo.csv'
 
-emotion_features = load_pickle(pickle_path)
+emotion_features = load_pickle(pickle_path)['audio']
+# print(emotion_features['audio'][0])
 train_emotion_f, dev_emotion_f, test_emotion_f = emotion_features[0], emotion_features[1], emotion_features[2]
 
 train_text = pd.read_csv(train_csv)

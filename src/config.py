@@ -12,15 +12,15 @@ import torch
 # path to a pretrained word embedding file
 word_emb_path = '/home/henry/glove/glove.840B.300d.txt'
 assert(word_emb_path is not None)
-DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+DEVICE = torch.device('cuda:5' if torch.cuda.is_available() else 'cpu')
+# DEVICE = torch.device('cpu')
 username = Path.home().name
 project_dir = Path(__file__).resolve().parent.parent
 sdk_dir = project_dir.joinpath('CMU-MultimodalSDK')
 data_dir = project_dir.joinpath('datasets')
 data_dict = {'mosi': data_dir.joinpath('MOSI'), 'mosei': data_dir.joinpath(
     'MOSEI'), 'mos':data_dir.joinpath('MOS'), 'moseld':data_dir.joinpath('MOSELD'),'moseldmp': data_dir.joinpath('MOSELDMP'),'iemocap': data_dir.joinpath('IEMOCAP'), 'meld': data_dir.joinpath('MELD'), 'emotionlines': data_dir.joinpath('EmotionLines'),
-             'laptops': data_dir.joinpath('laptops'), 'restaurants': data_dir.joinpath(('restaurants'))}
+             'laptops': data_dir.joinpath('laptops'), 'restaurants': data_dir.joinpath(('restaurants')), 'omgbehavior': '/data/tyu/dataset/'}
 optimizer_dict = {'RMSprop': optim.RMSprop, 'Adam': optim.Adam}
 activation_dict = {'elu': nn.ELU, "hardshrink": nn.Hardshrink, "hardtanh": nn.Hardtanh,
                    "leakyrelu": nn.LeakyReLU, "prelu": nn.PReLU, "relu": nn.ReLU, "rrelu": nn.RReLU,
@@ -42,11 +42,14 @@ def get_args():
     parser.add_argument('-f', default='', type=str)
 
     # Tasks
-    parser.add_argument('--dataset', type=str, default='moseldmp', choices=['mosi','mosei', 'mos', 'moseld', 'moseldmp', 'iemocap', 'meld', 'emotionlines', 'laptops', 'restaurants'],
+    parser.add_argument('--dataset', type=str, default='meld', choices=['mosi','mosei', 'mos', 'moseld', 'moseldmp', 'iemocap', 'meld', 'emotionlines', 'laptops', 'restaurants'],
                         help='dataset to use (default: mosei)')
     parser.add_argument('--data_path', type=str, default='datasets',
                         help='path for storing the dataset')
-
+    parser.add_argument('--num_works', type=int, default=2,
+                        help='num_works of dataloader')
+    parser.add_argument('--shuffle', type=bool, default=True,
+                        help='whether to shuffle the dataloader')
     # Dropouts
     parser.add_argument('--dropout_a', type=float, default=0.2,
                         help='dropout of acoustic LSTM out layer')
@@ -103,6 +106,7 @@ def get_args():
                         help='L2 penalty factor of the main Adam optimizer')
 
     #### subnetwork parameter
+
     parser.add_argument('--embed_dropout', type=float, default=1e-4,
                         help='embed_drop')
     parser.add_argument('--attn_dropout', type=float, default=1e-4,
@@ -120,7 +124,7 @@ def get_args():
         
     parser.add_argument('--optim', type=str, default='Adam',
                         help='optimizer to use (default: Adam)')
-    parser.add_argument('--num_epochs', type=int, default=20,
+    parser.add_argument('--num_epochs', type=int, default=40,
                         help='number of epochs (default: 40)')
     parser.add_argument('--when', type=int, default=20,
                         help='when to decay learning rate (default: 20)')
@@ -144,7 +148,7 @@ def get_args():
     
     parser.add_argument('--save', type=bool, default=True)
     #### 对比学习
-    parser.add_argument('--info_nce', type=bool, default=False, help='whether use info_nce_loss')
+    parser.add_argument('--info_nce', type=bool, default=True, help='whether use info_nce_loss')
     parser.add_argument('--use_info_nce_num', type=int, default=3, help='the number of used info_nce', choices=[3, 4, 5])
     parser.add_argument('--use_cl', type=bool, default=False, help='whether use info_nce_loss')
     parser.add_argument('--cl_name', type=str, default='info_nce', help='the number of used info_nce', choices=['info_nce', 'info_mi'])
@@ -189,14 +193,14 @@ def str2bool(v):
 class Config(object):
     def __init__(self, data, mode='train'):
         """Configuration Class: set kwargs as class attributes with setattr"""
-        self.dataset_dir = data_dict[data.lower()]
+        self.dataset_dir = data_dict[data.lower()]   
         self.sdk_dir = sdk_dir
         self.mode = mode
         # Glove path
         self.word_emb_path = word_emb_path
 
         # Data Split ex) 'train', 'valid', 'test'
-        self.data_dir = self.dataset_dir
+        self.data_dir = self.dataset_dir  #所有训练数据集的路径
         self.hidden_size = 512
 
     def __str__(self):

@@ -36,12 +36,12 @@ def eval_emotionlines(results, truths):
     #主要通过混淆矩阵来计算
     
     for i, ele in enumerate(results):
-        if ele == 'sad' or ele == 'sa':
-            results[i] = 'sadness'
+        if ele == 's' or ele == 'sa':
+            results[i] = 'sad'
         if ele == 'frust':
             results[i] = 'frustrated'
     # cm = confusion_matrix(results, truths)
-    report = classification_report(truths, results)
+    report = classification_report(truths, results, digits=4)
     print(report)
     
 def eval_iemocap(results, truths):
