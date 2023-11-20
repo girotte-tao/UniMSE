@@ -12,7 +12,7 @@ import torch
 # path to a pretrained word embedding file
 word_emb_path = '/home/henry/glove/glove.840B.300d.txt'
 assert(word_emb_path is not None)
-DEVICE = torch.device('cuda:5' if torch.cuda.is_available() else 'cpu')
+DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # DEVICE = torch.device('cpu')
 username = Path.home().name
 project_dir = Path(__file__).resolve().parent.parent

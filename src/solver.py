@@ -268,7 +268,6 @@ class Solver(object):
             model.eval()
             # loader = self.test_loader if test else self.dev_loader
             total_loss = 0.0
-            test_loss = 0.0
 
             results = []
             truths = []
@@ -356,6 +355,7 @@ class Solver(object):
             return WF1, avg_loss, results, truths, ids_list
 
         best_WF1 = 0.0
+        test_loss = 0.0
         for epoch in range(1, self.hp.num_epochs+1):
             start = time.time()
            
