@@ -41,6 +41,7 @@ def eval_emotionlines(results, truths):
         if ele == 'frust':
             results[i] = 'frustrated'
     # cm = confusion_matrix(results, truths)
+    truths = [element for sublist in truths for element in sublist]
     report = classification_report(truths, results)
     print(report)
     
